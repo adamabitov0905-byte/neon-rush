@@ -1,0 +1,11 @@
+{
+  "name": "Лёд",
+  "author": "MultiTool",
+  "fog": "#0c1e3b",
+  "ground": "#e6fbff",
+  "skyTop": "#041020",
+  "skyMid": "#16547a",
+  "skyBot": "#071018",
+  "sunA": "#5ae8ff",
+  "sunB": "#e8fbff"
+}

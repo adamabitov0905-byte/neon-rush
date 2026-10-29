@@ -1,0 +1,11 @@
+{
+  "name": "Кислота",
+  "author": "MultiTool",
+  "fog": "#0d1f12",
+  "ground": "#c8ffd2",
+  "skyTop": "#02110a",
+  "skyMid": "#0c5a33",
+  "skyBot": "#031107",
+  "sunA": "#7aff6b",
+  "sunB": "#e0ff87"
+}

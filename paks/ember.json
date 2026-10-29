@@ -1,0 +1,11 @@
+{
+  "name": "Огонь",
+  "author": "MultiTool",
+  "fog": "#40110d",
+  "ground": "#ffd9b8",
+  "skyTop": "#2b0608",
+  "skyMid": "#7d1f12",
+  "skyBot": "#170404",
+  "sunA": "#ff7a2f",
+  "sunB": "#ffd166"
+}
