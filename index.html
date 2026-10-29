@@ -467,6 +467,7 @@ body.sandbox .hud-score,body.sandbox .shields{display:none}
 <div id="lefttools">
   <button id="tPause" class="hidden" aria-label="Пауза">❚❚</button>
   <button id="tFull" aria-label="Полный экран">⛶</button>
+  <button id="pvpToggle" data-act="pvp" class="hidden">PVP: вкл</button>
 </div>
 
 <script type="module">
@@ -53849,7 +53850,7 @@ const DEFAULT_SAVE = {
   up: { engine: 0, shield: 0, magnet: 0, boost: 0, grip: 0 },
   best: 0, records: [], promos: [], cube: false,
   stats: { runs: 0, dist: 0, time: 0, bestCombo: 1, earned: 0, crashes: 0 },
-  settings: { mode: 'endless', quality: 'auto', volume: 70, shake: true, hud: true, scan: true, cam: 0 }
+  settings: { mode: 'endless', quality: 'auto', volume: 70, shake: true, hud: true, scan: true, cam: 0, pvp: true }
 };
 
 function loadSave() {
@@ -54601,7 +54602,7 @@ for (let i = 0; i < VEH_TYPES.length; i++) {
   vehObjs.push(v);
 }
 let vehIndex = 0;
-let pvpOn = true;
+let pvpOn = save.settings.pvp !== false;
 let fireTimer = 0;
 const ghostHit = {};
 const chaseCar = buildCar({ hull: 0x1a2233, a: 0xff3b3b, b: 0x4f6cff, len: 1.02, wid: 1.02 });
@@ -54803,6 +54804,8 @@ function showScreen(name) {
   curScreen = name || null;
   const pb = document.getElementById('tPause');
   if (pb) pb.classList.toggle('hidden', name !== null);
+  const pvpB = document.getElementById('pvpToggle');
+  if (pvpB) pvpB.classList.toggle('hidden', !(name === null && sandboxWorld.visible));
 }
 
 function banner(title, sub) {
@@ -54922,7 +54925,7 @@ function renderSettings() {
     '<div class="setrow"><div><b>Текстур-пак</b><small>сменить цвета сцены</small></div>' +
     '<select id="setPack">' +
     '<option value="">Неон (обычный)</option>' +
-    Object.keys(PACKS).map((k) => '<option value="' + k + '">' + PACKS[k].name + '</option>').join('') +
+    Object.keys(PACKS).filter((k) => PACKS[k]).map((k) => '<option value="' + k + '">' + PACKS[k].name + '</option>').join('') +
     '</select></div>' +
     '<div class="setrow"><div><b>Свой пак</b><small>файл .json (скачай из paks/ или сделай свой)</small></div>' +
     '<div style="display:flex;gap:8px"><button class="ghost" id="packLoad">Файл</button>' +
@@ -55304,6 +55307,14 @@ function handleAct(t) {
     openScreen(t.getAttribute('data-screen'));
     return;
   }
+  if (act === 'pvp') {
+    pvpOn = !pvpOn;
+    save.settings.pvp = pvpOn;
+    persist();
+    syncPvpButtons();
+    banner('PVP', pvpOn ? 'включён — SPACE стреляет' : 'выключен');
+    return;
+  }
   if (act === 'color') {
     save.color = Number(t.getAttribute('data-h')) || 0.55;
     persist();
@@ -55517,10 +55528,24 @@ el('admBots').addEventListener('click', () => {  save.settings.mode = 'bots';
    });
   el('admPvp').addEventListener('click', () => {
     pvpOn = !pvpOn;
-    el('admPvp').textContent = 'PVP: ' + (pvpOn ? 'вкл' : 'выкл');
-    el('admPvp').classList.toggle('on', pvpOn);
+    save.settings.pvp = pvpOn;
+    persist();
+    syncPvpButtons();
     admStatus('PVP ' + (pvpOn ? 'включён — огонь на SPACE' : 'выключен'));
   });
+  function syncPvpButtons() {
+    const label = 'PVP: ' + (pvpOn ? 'вкл' : 'выкл');
+    const main = el('pvpBtn');
+    if (main) {
+      main.textContent = label;
+      main.classList.toggle('on', pvpOn);
+    }
+    const adm = el('admPvp');
+    if (adm) {
+      adm.textContent = label;
+      adm.classList.toggle('on', pvpOn);
+    }
+  }
    el('admPromos').addEventListener('click', () => {
   for (const k in PROMOS) if (save.promos.indexOf(k) < 0) save.promos.push(k);
   save.credits += 18000;
@@ -55959,6 +55984,11 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function spawnObstacleRow() {
+  let closest = 0;
+  for (const o of obstacles) {
+    if (o.active) closest = Math.min(closest, o.z);
+  }
+  if (closest > -120) return;
   const playerLane = clamp(Math.round(G.px / 2.72) + 1, 0, 2);
   const free = clamp(playerLane + randInt(-1, 1), 0, 2);
   const others = [0, 1, 2].filter((l) => l !== free);
@@ -56373,8 +56403,8 @@ function step(dt) {
   if (playing && G.run) {
     if (G.run.type === 'chase') {
       chaseCar.visible = true;
-      G.run.gap += (topSpeed() * 1.04 - spd) * dt * 1.6;
-      if (G.run.gap < 3) {
+      G.run.gap += (topSpeed() * 1.02 - spd) * dt * 0.9;
+      if (G.run.gap < 7) {
         G.run.gap = 62;
         const cr = Math.round(240 * G.run.mult);
         G.run.credits += cr;
@@ -56391,7 +56421,7 @@ function step(dt) {
       const onRed = Math.sin(G.time * 11) > 0;
       chaseCar.userData.flash[0].material.opacity = onRed ? 0.95 : 0.12;
       chaseCar.userData.flash[1].material.opacity = onRed ? 0.12 : 0.95;
-      if (G.run.gap > 155 && !G.run.finished) {
+      if (G.run.gap > 220 && !G.run.finished) {
         G.run.finished = true;
         banner('УШЁЛ', 'дистанция потеряна');
         endRun(false);
